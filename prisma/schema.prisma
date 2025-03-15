@@ -1,0 +1,194 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum MuscleFocus {
+  GENERAL
+  CHEST
+  ARMS
+  SHOULDERS
+  BACK
+  LOWER
+  QUADRICEPS
+  GLUTES
+  HAMSTRINGS
+  MOBILITY
+  CORRECTION
+  STRENGTHENING
+}
+
+enum TrainingTime {
+  ZERO_TO_TWO         @map("0-2")
+  TWO_TO_SIX          @map("2-6")
+  SIX_TO_TWELVE       @map("6-12")
+  TWELVE_TO_SEVENTEEN @map("12-17")
+  SEVENTEEN_PLUS      @map("17+")
+}
+
+enum Category {
+  CHEST
+  ARMS
+  SHOULDERS
+  BACK
+  LOWER
+  QUADRICEPS
+  GLUTES
+  HAMSTRINGS
+  MOBILITY
+  CORRECTION
+  STRENGTHENING
+}
+
+enum Difficulty {
+  BEGINNER
+  INTERMEDIATE1
+  INTERMEDIATE2
+  ADVANCED
+}
+
+enum Goal {
+  HYPERTROPHY
+  WEIGHTLOSS
+}
+
+enum WeeklyFrequency {
+  TWO_X       @map("2x")
+  THREE_X     @map("3x")
+  FOUR_X      @map("4x")
+  FIVE_PLUS_X @map("5x+")
+}
+
+enum WorkoutType {
+  MALE
+  FEMALE
+  GENERAL
+}
+
+model User {
+  id              String          @id @default(uuid())
+  name            String
+  email           String          @unique
+  password        String
+  role            Role            @default(USER)
+  gender          Gender
+  age             Int
+  weight          Float
+  height          Float
+  goal            Goal
+  trainingTime    TrainingTime
+  weeklyFrequency WeeklyFrequency
+  muscleFocus     MuscleFocus
+  workouts        UserWorkout[]
+  progress        UserProgress[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Exercise {
+  id                 String               @id @default(uuid())
+  name               String
+  category           Category
+  description        String
+  videoUrl           String?
+  createdAt          DateTime             @default(now()) @map("created_at")
+  updatedAt          DateTime             @updatedAt @map("updated_at")
+  SubWorkoutExercise SubWorkoutExercise[]
+  UserProgress       UserProgress[]
+
+  @@map("exercises")
+}
+
+model Workout {
+  id              String          @id @default(uuid())
+  name            String
+  workoutType     WorkoutType
+  difficulty      Difficulty
+  goal            Goal
+  weeklyFrequency WeeklyFrequency
+  subWorkouts     SubWorkout[]
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+  UserWorkout     UserWorkout[]
+
+  @@map("workouts")
+}
+
+model SubWorkout {
+  id        String               @id @default(uuid())
+  name      String
+  workoutId String
+  workout   Workout              @relation(fields: [workoutId], references: [id])
+  exercises SubWorkoutExercise[]
+  createdAt DateTime             @default(now()) @map("created_at")
+  updatedAt DateTime             @updatedAt @map("updated_at")
+
+  @@map("sub_workouts")
+}
+
+model SubWorkoutExercise {
+  id           String     @id @default(uuid())
+  subWorkoutId String
+  subWorkout   SubWorkout @relation(fields: [subWorkoutId], references: [id])
+  sets         Int
+  repetitions  Int
+  restTime     Int
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+  exerciseId   String
+  exercise     Exercise   @relation(fields: [exerciseId], references: [id])
+
+  @@map("sub_workouts_exercises")
+}
+
+model UserWorkout {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  workoutId   String
+  workout     Workout   @relation(fields: [workoutId], references: [id])
+  assignedAt  DateTime  @default(now())
+  completedAt DateTime?
+  feedback    String?
+
+  @@map("user_workouts")
+}
+
+model UserProgress {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+  exerciseId      String?
+  exercise        Exercise? @relation(fields: [exerciseId], references: [id])
+  date            DateTime  @default(now())
+  weightLifted    Float?
+  setsCompleted   Int?
+  repsCompleted   Int?
+  perceivedEffort Int?
+  bodyWeight      Float?
+
+  @@map("user_progress")
+}
